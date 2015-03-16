@@ -1,9 +1,9 @@
 # zm-movie
-Make zoneminder movie from stills, uses mencoder apache mysql and zoneminder
+Make zoneminder movie from stills, uses mencoder apache mysql and zoneminder. Tested on ubuntu 14.04 and zoneminder 1.28 installation from iconnor repository
 
-PHP script to create videos between start/end dates from stills (Note I am not a programmer!!!)
+PHP script to create videos between start/end dates from stills (Note I am not a programmer so code may not meet industry standards!!!)
 
-Ensure the folder where the script resides is writable by www-data
+Ensure the folder where the script resides is writable by www-data and mencoder is installed
 
 Simply drop the script in /var/www/html somewhere and point your browser to it. Uses default ZM 1.28 paths and mysql credentials. The script will create a video in the folder where the script resides. Once mencoder has finished making the video, the script will display the video available for download on the script page (you have to refresh the page).
 
