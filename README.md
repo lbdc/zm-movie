@@ -11,5 +11,4 @@ The script has 2 modes:
 All = movies generated from all frames
 Alarm = alarm frames only (with time buffer before and after). The intent of this is to be used with mocord.
 
-The script also can be run from the command line (but watch for file zm_list.txt permissions created in /tmp foler when going back and forth from arguments/browser modes)
-
+Due to zoneminder writing bulk frames to database in continuous recording the buffer time may not be exact in the video. For high frame rate recordings (30fps) buffer should be fairly accurate but for lower frame rates (5 fps for example) you may want to reduce the bulk frame interval in zoneminder settings (script to be fixed later).
