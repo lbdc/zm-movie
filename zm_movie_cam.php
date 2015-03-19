@@ -99,7 +99,7 @@ else
 	echo '<tr>' . '<td>' . 'Video Start Time ' . '</td>' . '<td>' . '<input type = text value="' . $mon_event[$c]['Starttime'] . '" name="Starttime">' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Video End Time ' . '</td>' . '<td>' . '<input type = text value="' . $mon_event[$c]['Endtime'] . '" name="Endtime">' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Buffers (seconds)' . '</td>' . '<td>' . '<input type="number" name="Buffer" max="60" min="0" step="5" value="30">' . '</td>' . '</tr>';
-	echo '<tr>' . '<td>' . 'Frames' . '</td>' . '<td>' . '<select name="Frames"> <option value="Alarm">Alarm</option> <option value="All">All</option></select>' . '</td>' . '</tr>';
+	echo '<tr>' . '<td>' . 'Frames' . '</td>' . '<td>' . '<select name="Frames"> <option value="All">All</option> <option value="Alarm">Alarm</option></select>' . '</td>' . '</tr>';
 	echo '</table><br>';
 	
 	echo "Mencoder parameters";
