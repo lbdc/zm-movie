@@ -22,6 +22,8 @@
 // Read from etc/zm/zm.conf
 //
 $config = parse_ini_file('/etc/zm/zm.conf');
+// Read from Centos etc/zm.conf
+$config = parse_ini_file('/etc/zm.conf');
 
 define('ZM_HOST', $config['ZM_DB_HOST']);
 define('ZMUSER', $config['ZM_DB_USER']);
