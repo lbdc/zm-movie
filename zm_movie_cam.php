@@ -27,7 +27,8 @@ define('ZM_HOST', $config['ZM_DB_HOST']);
 define('ZMUSER', $config['ZM_DB_USER']);
 define('ZMPASS', $config['ZM_DB_PASS']);
 define('ZM_DB', $config['ZM_DB_NAME']);
-define('PATH_TMP', '/tmp');
+// define('PATH_TMP', '/tmp');
+define('PATH_TMP', getcwd());
 define('PATH_TARGET',getcwd());
 
 // Get DIR_EVENTS from database
@@ -104,7 +105,7 @@ else
 	echo '<table>';
 	echo '<tr>' . '<td>' . 'Bitrate' . '</td>' . '<td>' . '<input type="number" name="Bitrate" max="2500" min="100" step="100" value="500">' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Speed' . '</td>' . '<td>' . '<input type="number" name="Speed" max="25" min="1" step="1" value="5">' . '</td>' . '</tr>';
-	echo '<tr>' . '<td>' . 'Codec' . '</td>' . '<td>' . '<select name="Codec"> <option value="mpeg4">mpeg4</option> <option value="msmpeg4">msmpeg4</option></select>' . '</td>' . '</tr>';
+	echo '<tr>' . '<td>' . 'Codec' . '</td>' . '<td>' . '<select name="Codec"> <option value="mpeg4">mpeg4</option> <option value="msmpeg4">msmpeg4</option> <option value="x264">x264</option></select>' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Video Size *Camera' . '</td>' . '<td>' . '<select name="Size"> <option value="' . $mon_event[$c]['Size'] . '">' . $mon_event[$c]['Size'] . '*</option><option value="1920:1080">1920x1080</option> <option value="1280:720">1280x720</option><option value="640:480">640x480</option><option value="320:240">320x240</option></select>' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Filename' . '</td>' . '<td>' . '<input type = text value="' . $mon_event[$c]['Name'] . '_movie" name="Filename">' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Extension' . '</td>' . '<td>' . '<select name="Ext"> <option value="avi">avi</option> <option value="mp4">mp4</option>' . '</td>' . '</tr>';
@@ -147,23 +148,51 @@ else
 		echo $x/2 . ' movie(s) in progress...<br><br>'; }
 
 // Show existing movies for download
-
-	echo 'Movies available for download';
-	$path    = './';
+// Get movies and text files from folder
 	$files = glob('*.{avi,mp4,txt}',GLOB_BRACE);
-	
+	foreach($files as $value) {
+                $movie_files[]=basename($value, ".txt"); }
+	$movie_files=array_unique($movie_files);
+	$movie_files=array_values($movie_files);
+
+// Make table
 	echo '<form name="files"  method="POST">';
 	echo '<table>';
-	for ($x=0; $x<count($files) ;$x++) {
-		echo '<tr>' . '<td>' . '<a href="' . $files[$x] . '">' .  $files[$x] . '</a>' . '</td>' . '<td>' . '<input type="submit"  name="' . $x . '" value="delete">' . '</td>';
-	 }
+
+// Iterate through all movie files found and create table
+	for ($x=0; $x<count($movie_files) ;$x++) {
+
+		 echo '<tr>';
+		// Verify if there is a file creation in progress and get PID value
+		$pid[$x]=exec("ps -ef | grep $files[$x] | grep -v grep | awk '{print $2}'");
+		if($pid[$x] > 0) {
+			$enc_status[$x]="In Progress"; }
+		else {
+			$enc_status[$x]="Ready"; }
+		
+		// Does movie file exists	
+		if(file_exists($movie_files[$x])) {
+			echo '<td><a href="'.$movie_files[$x].'">'.$movie_files[$x].'</a></td>';
+			echo '<td>'.number_format(filesize($movie_files[$x])/1048576,2).' MB</td>'; }
+		else {
+			echo '<td>'.$movie_files[$x].'</td>'; }
+		// Does text file exists	
+		if(file_exists("$movie_files[$x].txt")) {
+			echo '<td><a href="'.$movie_files[$x].'.txt">List</a></td>' ;}
+		else {
+			echo '<td>----</td>'; }
+		echo '<td>'.$enc_status[$x].'</td><td><input type="submit" name="'.$x.'" value="del/kill"></td>';
+
+	}	
 	echo '</tr>';
 	echo '</table>';
 	echo '</form>';
-	for ($y=0; $y<count($files) ;$y++) {
-		if (isset($_POST[$y]) && $_POST[$y] == "delete") {
-			echo $files[$y];
-			unlink($files[$y]);
+	for ($y=0; $y<count($movie_files) ;$y++) {
+		if (isset($_POST[$y]) && $_POST[$y] == "del/kill") {
+			if($pid[$y] > 0) {
+				 exec("kill $pid[$y]"); }
+			unlink($movie_files[$y]);
+			unlink($movie_files[$y].'.txt');
 			unset($_POST);
 			unset($_REQUEST);
 			header('Location: ' . $_SERVER['PHP_SELF']);	
@@ -405,9 +434,13 @@ function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Fram
 	$Extension=pathinfo($Filename);
 	$Size=explode(":",$Size);
 	$Width=$Size[0];
+// Encoder options
+// High Quality: vcodec=mpeg4:mbd=2:trell:v4mv:last_pred=2:dia=-1:vmax_b_frames=2:vb_strategy=1:cmp=3:subcmp=3:precmp=0:vqcomp=0.6:turbo
+// Fast: vcodec=mpeg4:mbd=2:trell:v4mv:turbo
+// Realtime: vcodec=mpeg4:mbd=2:turbo
 
 	$encoder_param ="/usr/bin/mencoder mf://@".PATH_TMP."/".$Filename.".txt -mf fps=".$fps." -o ".PATH_TMP."/".$video_file." -of lavf -ovc lavc -lavcopts vcodec=".$Codec.":mbd=1:threads=".$CPU.":vbitrate=".$Bitrate." -vf scale=".$Width.":-2"; 
-
+//	$move_movie = "mv " . PATH_TMP."/$video_file ".PATH_TARGET."/$video_file";
 //	Move movie and text file with image path
 	$move_movie = "mv " . PATH_TMP."/$video_file* ".PATH_TARGET."/";
 
