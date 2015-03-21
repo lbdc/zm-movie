@@ -197,6 +197,7 @@ else
 	for ($y=0; $y<count($movie_files) ;$y++) {
 		if (isset($_POST[$y]) && $_POST[$y] == "Kill/Del") {
 				// Kill requested process
+				exec("ps -ef | grep $files[$y] | grep -v grep | awk '{print $2}'",$pid);
 				if(!empty($pid)) {	
 					// kill process
 					exec("pkill -f '[/]$movie_files[$y]*'");} 
