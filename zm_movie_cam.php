@@ -38,7 +38,7 @@ while($row = mysqli_fetch_assoc($result)) {
 	$Dir_Events=end($row);
 }
 mysqli_close($con);
-define('PATH_EVENT', $config['ZM_PATH_DATA'].'/'.$Dir_Events);
+define('PATH_EVENT', $config['ZM_PATH_WEB'].'/'.$Dir_Events);
 
 //
 // Arguments required if using function as command line
@@ -115,6 +115,9 @@ else
 	echo '<input type="hidden" name="form" value="2">';
 	echo '<input type="submit" value="Make Movie">';
 	echo '</form>';
+	if(isset($_GET['form']) && $_GET['form'] == 2) { 
+		$c = $_GET['Camera'];
+	}
 
 // POST data from user input
 
@@ -139,13 +142,18 @@ else
 			echo "<script type='text/javascript'>alert('Error: Verify your dates');history.go(-1);</script>";
 		}
 	}
-
 // check if process (movies) are already being processed and if so, display them
 	exec("ps -eo args | grep [m]encoder", $return);
 	$x = intval(count($return));
 	if ($x > 1) {
-		
-		echo $x/2 . ' movie(s) in progress...<br><br>'; }
+		echo $x/2 . ' movie(s) in progress...<br>';
+		echo '<form name="killall" action="" method="GET">';		
+		echo '<input type="hidden" name="form" value="3">';
+		echo '<input type="submit" value="Kill All">';
+		echo '</form>'; }
+	if(isset($_GET['form']) && $_GET['form'] == 3) { 
+		exec("killall mencoder");
+ 	}
 
 // Show existing movies for download
 // Get movies and text files from folder
@@ -161,11 +169,10 @@ else
 
 // Iterate through all movie files found and create table
 	for ($x=0; $x<count($movie_files) ;$x++) {
-
-		 echo '<tr>';
+		exec("ps -ef | grep $files[$x] | grep -v grep | awk '{print $2}'",$pid);
+		echo '<tr>';
 		// Verify if there is a file creation in progress and get PID value
-		$pid[$x]=exec("ps -ef | grep $files[$x] | grep -v grep | awk '{print $2}'");
-		if($pid[$x] > 0) {
+		if(!empty($pid)) {
 			$enc_status[$x]="In Progress"; }
 		else {
 			$enc_status[$x]="Ready"; }
@@ -181,18 +188,22 @@ else
 			echo '<td><a href="'.$movie_files[$x].'.txt">List</a></td>' ;}
 		else {
 			echo '<td>----</td>'; }
-		echo '<td>'.$enc_status[$x].'</td><td><input type="submit" name="'.$x.'" value="del/kill"></td>';
+		echo '<td>'.$enc_status[$x].'</td><td><input type="submit" name="'.$x.'" value="Kill/Del"></td>';
 
 	}	
 	echo '</tr>';
 	echo '</table>';
 	echo '</form>';
 	for ($y=0; $y<count($movie_files) ;$y++) {
-		if (isset($_POST[$y]) && $_POST[$y] == "del/kill") {
-			if($pid[$y] > 0) {
-				 exec("kill $pid[$y]"); }
-			unlink($movie_files[$y]);
-			unlink($movie_files[$y].'.txt');
+		if (isset($_POST[$y]) && $_POST[$y] == "Kill/Del") {
+				// Kill requested process
+				if(!empty($pid)) {	
+					// kill process
+					exec("pkill -f '[/]$movie_files[$y]*'");} 
+				else {
+					// deleting files
+					unlink($movie_files[$y]);
+					unlink($movie_files[$y].'.txt');}
 			unset($_POST);
 			unset($_REQUEST);
 			header('Location: ' . $_SERVER['PHP_SELF']);	
@@ -251,12 +262,26 @@ function Load_Camera()
 
 function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Frametype,$Codec,$Size,$Filename)
 {
+// If filename exists, increment
+	fwrite($zm_movie_log,"New filename: ".PATH_TARGET."/$Filename".PHP_EOL);
+	$f=0;
+	while(file_exists(PATH_TARGET."/$Filename")) {
+		$Filename=$f.$Filename;
+		$f++;
+	}
+
+// open log file
+
+	$path_tmp = PATH_TMP;
+	$zm_movie_log = fopen("$path_tmp/zm_movie.log","a") or die(' Unable to open log file');
 //
 // open database
 	echo "Starting Movie";
+	fwrite($zm_movie_log,"Starting Movie: $Filename Id:$MonitorId".PHP_EOL."Start:$Starttime".PHP_EOL."End:$Endtime".PHP_EOL."Buf:$Buffer $SpeedX $BitrateKbps Frames:$Frametype Codec:$Codec Size:$Size".PHP_EOL);
 	$con=mysqli_connect(ZM_HOST,ZMUSER,ZMPASS,ZM_DB);
 	if (mysqli_connect_errno()) {
 	        echo "Failed to connect to MySQL: " . mysqli_connect_error();
+		fwrite($zm_movie_log,"Failed to connect to MySQL".PHP_EOL);
 	}
 
 	// Get bulk frame interval needed to expand them (used later)
@@ -281,7 +306,6 @@ function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Fram
 	$Video_start = $Starttime;
 
 	// open file for dumping frames path to be used as input to mencoder (or ffmpeg)
-	$path_tmp = PATH_TMP;
 	$list1 = fopen("$path_tmp/$Filename.txt","w") or die(' Unable to open tmp file');
 
 	if ($Frametype == 'Alarm') {
@@ -335,7 +359,8 @@ function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Fram
 		                $Alarm_list[$i+1]['StartTime'] = date('Y-m-d H:i:s', $NewStarttime);
 		        }
 		}
-
+		
+		fwrite($zm_movie_log,"Distinct alarm events found: ".count($Alarm_list).PHP_EOL);
 		// Debugging purposes
 		// var_dump($Alarm_list);
 
@@ -434,13 +459,8 @@ function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Fram
 	$Extension=pathinfo($Filename);
 	$Size=explode(":",$Size);
 	$Width=$Size[0];
-// Encoder options
-// High Quality: vcodec=mpeg4:mbd=2:trell:v4mv:last_pred=2:dia=-1:vmax_b_frames=2:vb_strategy=1:cmp=3:subcmp=3:precmp=0:vqcomp=0.6:turbo
-// Fast: vcodec=mpeg4:mbd=2:trell:v4mv:turbo
-// Realtime: vcodec=mpeg4:mbd=2:turbo
 
 	$encoder_param ="/usr/bin/mencoder mf://@".PATH_TMP."/".$Filename.".txt -mf fps=".$fps." -o ".PATH_TMP."/".$video_file." -of lavf -ovc lavc -lavcopts vcodec=".$Codec.":mbd=1:threads=".$CPU.":vbitrate=".$Bitrate." -vf scale=".$Width.":-2"; 
-//	$move_movie = "mv " . PATH_TMP."/$video_file ".PATH_TARGET."/$video_file";
 //	Move movie and text file with image path
 	$move_movie = "mv " . PATH_TMP."/$video_file* ".PATH_TARGET."/";
 
@@ -449,8 +469,9 @@ function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Fram
 		exec("($encoder_param && $move_movie) >/dev/null &"); }
 	else {
 		echo "No events found";
+		fwrite($zm_movie_log,"No events found".PHP_EOL);
 	}
-	
+	fclose($zm_movie_log);	
 	// Clear GET data and reload page to clear POST
 	if(isset($_GET) || isset($_REQUEST)) {
 		unset($_GET);
