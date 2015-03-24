@@ -211,31 +211,33 @@ else
 	}
 	
 	// Display log if present
-	if(file_exists("$movie_files[$x].txt")) {
+	if(file_exists("zm_movie.log")) {
 		echo '<tr>';
-		echo '<td><input type="radio" name="movie_log" value="movie_log"></td>';
+		echo '<td><input type="radio" name="movie_index" value="movie_log"></td>';
 		echo '<td colspan="4"><a href="zm_movie.log">Log</a></td>'; 
 		echo '</tr>';
 	}
 	echo '</table>';
 	echo '<td><input type="submit" name="Kill/Del" value="Kill/Del">';
 	echo '</form>';
-
 	// Movie is killed first, then deleted if requested again
 	if(isset($_GET['Kill/Del'])) {
 		$y=$_GET['movie_index'];
-		if(!empty($pid[$y])) {	
-			// kill process
-			exec("kill $pid[$y]"); 
-		}	
-		else {
-			// deleting files
-			unlink($movie_files[$y]);
-			unlink($movie_files[$y].'.txt');
+		if($y=="movie_log") {	
+			// delete log
+			unlink("zm_movie.log");
 		}
-		// Simply delete log file	
-		if($_GET['Kill/Del']=="movie_log") {
-			unlink(zm_movie.log); }
+		else {	
+			if(!empty($pid[$y])) {	
+				// kill process
+				exec("kill $pid[$y]"); 
+			}	
+			else {
+				// deleting files
+				unlink($movie_files[$y]);
+				unlink($movie_files[$y].'.txt');
+			}
+		}	
 	unset($_POST);
 	unset($_REQUEST);
 	header('Location: ' . $_SERVER['PHP_SELF']);	
