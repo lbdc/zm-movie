@@ -1,7 +1,8 @@
 # zm-movie
 Make zoneminder movie from stills
 
-zm_movie_cam.php uses mencoder apache mysql and zoneminder. 
+zm_movie_cam.php uses mencoder apache mysql and zoneminder.
+
 zm_movie_cam_avconv.php uses avconv/ffmpeg apache mysql and zoneminder. 
 
 Tested on ubuntu 14.04 and zoneminder 1.28 installation from iconnor repository
