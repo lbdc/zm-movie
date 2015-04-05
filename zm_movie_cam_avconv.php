@@ -162,13 +162,13 @@ else
 	exec("ps aux | grep '[a]vconv\|[f]fmpeg' | awk '{print $2}'",$return_avconv);
 	$x = intval(count($return_avconv));
 	if ($x > 0) {
-		echo $x/2 . ' movie(s) in progress...<br>';
+		echo 'Movie(s) encoding in progress...<br>';
 		echo '<form name="killall" action="" method="GET">';
 		echo '<input type="hidden" name="form" value="3">';
 		echo '<input type="submit" value="Kill All">';
 		echo '</form>'; }
 	if(isset($_GET['form']) && $_GET['form'] == 3) { 
-		exec("killall avconv");
+		exec("killall avconv ffmpeg");
 	}
 
 // Show existing movies for download
@@ -243,17 +243,20 @@ else
 			if(!empty($pid[$y])) {
 				// kill process
 				exec("kill $pid[$y]");
+				unset($_GET);
+				unset($_REQUEST);
+				header('Location: ' . $_SERVER['PHP_SELF']);
 			}
 			else {
 				// deleting files
 				unlink($movie_files[$y]);
 				unlink($movie_files[$y].'.txt');
-				unset($_POST);
+				unset($_GET);
 				unset($_REQUEST);
 				header('Location: ' . $_SERVER['PHP_SELF']);
 			}
 		}
-	unset($_POST);
+	unset($_GET);
 	unset($_REQUEST);
 	header('Location: ' . $_SERVER['PHP_SELF']);
 	}
@@ -519,7 +522,7 @@ if (empty($ffmpeg)) {
 	$Size=explode(":",$Size);
 	$Width=$Size[0];
 
-	$encoder_param = "cat $(cat ".PATH_TARGET."/".$Filename.".txt) | " .$ffmpeg[0] . " -r ".$fps." -f image2pipe -vcodec mjpeg -i - -profile:v ".$Profile." -preset:v ".$Preset." -threads 0 -b:v ".$Bitrate."K -crf ".$CRF. " -vf scale=" . $Width. ":-1 " .PATH_TARGET."/".$video_file." -y";
+	$encoder_param = "while read CMD; do cat \$CMD; done < ".PATH_TARGET."/".$Filename.".txt | " .$ffmpeg[0] . " -r ".$fps." -f image2pipe -vcodec mjpeg -i - -profile:v ".$Profile." -preset:v ".$Preset." -threads 0 -b:v ".$Bitrate."K -crf ".$CRF. " -vf scale=" . $Width. ":-1 " .PATH_TARGET."/".$video_file." -y";
 	fwrite($zm_movie_log,$encoder_param.PHP_EOL);
 
 	if(filesize(PATH_TARGET."/".$Filename.".txt") > 0) {
