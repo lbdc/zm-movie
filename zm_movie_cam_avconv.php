@@ -23,7 +23,7 @@
 if(file_exists("/etc/zm/zm.conf")) {
 	$config = parse_ini_file('/etc/zm/zm.conf');}
 else if(file_exists("/etc/zm.conf")) {
-	$config = parse_ini_file('/etc/zm/zm.conf');}
+	$config = parse_ini_file('/etc/zm.conf');}
 else { echo "No zoneminder configuration zm.conf found";}
 //
 define('ZM_HOST', $config['ZM_DB_HOST']);
