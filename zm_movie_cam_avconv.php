@@ -47,22 +47,21 @@ define('PATH_EVENT', $config['ZM_PATH_WEB'].'/'.$Dir_Events);
 //
 if (isset($argc)) {
 echo $argc;
-	if ($argc == 13) {
+	if ($argc == 12) {
 		$MonitorId=$argv[1]; // Camera Id
 		$Starttime=$argv[2]; // format: '2015-01-15 07:00'
 		$Endtime=$argv[3]; // format: '2015-01-15 07:00'
 		$Buffer=$argv[4]; // seconds, 0 means alarm frames only
 		$Speed=$argv[5]; // 2 means 2X, 3 = 3x etc...
-		$Bitrate=$argv[6]; // 1000 is good for 720p
-		$Frametype=$argv[7]; // Alarm or All
-		$Codec=$argv[8]; // msmpeg4, mpeg4, x264
-		$Size=$argv[9]; // 1920:1080, 1280:720, 640:480, 320:200
-		$Filename=$argv[10]; // filename.mp4 or mkv
-		$Profile=$argv[11]; // ffmpeg profile Baseline Main or High 
-		$Preset=$argv[12]; // ffmpeg Preset slow fast etc... 
-		$CRF=$argv[13]; // ffmpeg CRF 0 (lossless) to 51 (worst)
+		$Frametype=$argv[6]; // Alarm or All
+		$Codec=$argv[7]; // msmpeg4, mpeg4, x264
+		$Size=$argv[8]; // 1920:1080, 1280:720, 640:480, 320:200
+		$Filename=$argv[9]; // filename.mp4 or mkv
+		$Profile=$argv[10]; // ffmpeg profile Baseline Main or High 
+		$Preset=$argv[11]; // ffmpeg Preset slow fast etc... 
+		$CRF=$argv[12]; // ffmpeg CRF 0 (lossless) to 51 (worst)
 //
-		Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF);	
+		Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF);	
 		exit;
 	}
 }
@@ -108,7 +107,6 @@ else
 	echo '<table>';
 	echo '<tr>' . '<td>' . 'Codec' . '</td>' . '<td>' . '<select name="Codec"><option value="x264">x264</option></select>' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'CRF' . '</td>' . '<td>' . '<input type="number" name="CRF" max="51" min="0" value="23">'.'</td>' . '</tr>';
-	echo '<tr>' . '<td>' . 'Bitrate' .'</td>' .'<td>' . '<input type="number" name="Bitrate" max="2500" min="100" step="100" value="500">' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Profile' . '</td>' . '<td>' . '<select name="Profile"><option value="Baseline">Baseline</option><option value="Main" SELECTED>Main</option><option value="High">High</option></select>' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Preset' . '</td>' . '<td>' . '<select name="Preset"><option value="Veryslow">Veryslow</option><option value="Slow">Slow</option><option value="Medium">Medium</option><option value="Fast" SELECTED>Fast</option><option value="Faster">Faster</option><option value="Veryfast">Veryfast</option><option value="Superfast">Superfast</option><option value="Ultrafast">Ultrafast</option></select>' . '</td>' . '</tr>';
 	echo '<tr>' . '<td>' . 'Speed' . '</td>' . '<td>' . '<input type="number" name="Speed" max="50" min="1" step="1" value="10">' . '</td>' . '</tr>';
@@ -130,7 +128,6 @@ else
 		$MonitorId = $_GET['Id'];
 		$Frametype = $_GET['Frames'];
 		$Speed = $_GET['Speed'];
-		$Bitrate = $_GET['Bitrate'];
 		$Buffer = $_GET['Buffer'];
 		$Encoder = $_GET['Encoder'];
 		$Profile = $_GET['Profile'];
@@ -144,7 +141,7 @@ else
 		$index=$_GET['index'];
 		if(strtotime($Starttime) >= strtotime($mon_event[$index]['Starttime']) && strtotime($Endtime) <= strtotime($mon_event[$index]['Endtime']) && strtotime($Endtime) >  strtotime($Starttime))
 		{
-			Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF);
+			Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF);
 		}
 		else
 		{
@@ -247,6 +244,7 @@ else
 				unlink($movie_files[$y].'.txt');
 			}
 		}
+		sleep(2);
 		unset($_GET);
 		unset($_REQUEST);
 		$page = $_SERVER['PHP_SELF'];
@@ -300,7 +298,7 @@ function Load_Camera()
 //
 // Function Make_Movie()
 //
-function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Bitrate,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF)
+function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF)
 {
 // open log file
 	$path_target = PATH_TARGET;
@@ -326,7 +324,7 @@ if (empty($ffmpeg)) {
 	fwrite($zm_movie_log,"New filename: ".PATH_TARGET."/$Filename".PHP_EOL);
 // open database
 	echo "Starting Movie";
-	fwrite($zm_movie_log,"Starting Movie: $Filename Id:$MonitorId".PHP_EOL."Start:$Starttime".PHP_EOL."End:$Endtime".PHP_EOL."Buffer:$Buffer".PHP_EOL."Speed: $Speed".PHP_EOL."Bitrate: $Bitrate".PHP_EOL."Frames:$Frametype".PHP_EOL."Codec:$Codec".PHP_EOL."Size:$Size".PHP_EOL."Profile: $Profile".PHP_EOL."Preset: $Preset".PHP_EOL."CRF: $CRF".PHP_EOL);
+	fwrite($zm_movie_log,"Starting Movie: $Filename Id:$MonitorId".PHP_EOL."Start:$Starttime".PHP_EOL."End:$Endtime".PHP_EOL."Buffer:$Buffer".PHP_EOL."Speed: $Speed".PHP_EOL."Frames:$Frametype".PHP_EOL."Codec:$Codec".PHP_EOL."Size:$Size".PHP_EOL."Profile: $Profile".PHP_EOL."Preset: $Preset".PHP_EOL."CRF: $CRF".PHP_EOL);
 	$con=mysqli_connect(ZM_HOST,ZMUSER,ZMPASS,ZM_DB);
 	if (mysqli_connect_errno()) {
 	        echo "Failed to connect to MySQL: " . mysqli_connect_error();
@@ -472,7 +470,7 @@ if (empty($ffmpeg)) {
 	$Size=explode(":",$Size);
 	$Width=$Size[0];
 //
-	$encoder_param = "while read CMD; do cat \$CMD; done < ".PATH_TARGET."/".$Filename.".txt | " .$ffmpeg[0] . " -r ".$fps." -f image2pipe -vcodec mjpeg -i - -profile:v ".$Profile." -preset:v ".$Preset." -threads 0 -b:v ".$Bitrate."K -crf ".$CRF. " -vf scale=" . $Width. ":-1 " .PATH_TARGET."/".$video_file." -y";
+	$encoder_param = "while read CMD; do cat \$CMD; done < ".PATH_TARGET."/".$Filename.".txt | " .$ffmpeg[0] . " -r ".$fps." -f image2pipe -vcodec mjpeg -i - -profile:v ".$Profile." -preset:v ".$Preset." -threads 0 -crf ".$CRF. " -vf scale=" . $Width. ":-1 " .PATH_TARGET."/".$video_file." -y";
 	fwrite($zm_movie_log,$encoder_param.PHP_EOL);
 //
 	if(filesize(PATH_TARGET."/".$Filename.".txt") > 0) {
