@@ -1,7 +1,9 @@
 # zm-movie
 Make zoneminder movie from stills
+snapshot(http://imgur.com/CumzeUz)
 
 zm_movie_cam_avconv_01.php uses avconv/ffmpeg apache mysql and zoneminder (USE THIS ONE)
+
 
 zm_movie_cam_avconv.php uses avconv (OLD)
 zm_movie_cam.php uses mencoder apache mysql and zoneminder (OLD)
