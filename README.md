@@ -1,11 +1,12 @@
 # zm-movie
 Make zoneminder movie from stills
 
-zm_movie_cam_avconv.php uses avconv/ffmpeg apache mysql and zoneminder (USE THIS ONE)
+zm_movie_cam_avconv_01.php uses avconv/ffmpeg apache mysql and zoneminder (USE THIS ONE)
 
+zm_movie_cam_avconv.php uses avconv (OLD)
 zm_movie_cam.php uses mencoder apache mysql and zoneminder (OLD)
 
-Tested on ubuntu 14.04 and zoneminder 1.28 installation from iconnor repository
+Tested on ubuntu 14.04 and zoneminder 1.28.1 installation from iconnor repository
 
 PHP script to create videos between start/end dates from stills (Note I am not a programmer so code may not meet industry standards!!!)
 
