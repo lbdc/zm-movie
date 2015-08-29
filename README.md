@@ -14,7 +14,7 @@ PHP script to create videos between start/end dates from stills (Note I am not a
 
 Ensure the folder where the script resides is writable by www-data and mencoder is installed
 
-Simply drop the script in /var/www/html somewhere and point your browser to it. Uses default ZM 1.28 paths and mysql credentials. The script will create a video in the folder where the script resides. Once mencoder has finished making the video, the script will display the video available for download on the script page (you have to refresh the page).
+Simply drop the script in /var/www/html somewhere and point your browser to it. Uses default ZM 1.28 paths and mysql credentials. The script will create a video in the folder where the script resides. Once ffmpeg/avconv has finished making the video, the script will display the video available for download on the script page.
 
 The script has 2 modes:
 All = movies generated from all frames
