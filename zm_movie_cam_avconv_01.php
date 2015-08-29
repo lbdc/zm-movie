@@ -91,7 +91,7 @@ echo '<tr>' . '<td>' . 'Codec' . '</td>' . '<td>' . '<select name="Codec"><optio
 echo '<tr>' . '<td>' . 'CRF' . '</td>' . '<td>' . '<input type="number" name="CRF" max="51" min="0" value="23">'.'</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Profile' . '</td>' . '<td>' . '<select name="Profile"><option value="Baseline">Baseline</option><option value="Main" SELECTED>Main</option><option value="High">High</option></select>' . '</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Preset' . '</td>' . '<td>' . '<select name="Preset"><option value="Veryslow">Veryslow</option><option value="Slow">Slow</option><option value="Medium">Medium</option><option value="Fast" SELECTED>Fast</option><option value="Faster">Faster</option><option value="Veryfast">Veryfast</option><option value="Superfast">Superfast</option><option value="Ultrafast">Ultrafast</option></select>' . '</td>' . '</tr>';
-echo '<tr>' . '<td>' . 'Speed' . '</td>' . '<td>' . '<input type="number" name="Speed" max="50" min="1" step="1" value="10">' . '</td>' . '</tr>';
+echo '<tr>' . '<td>' . 'Speed' . '</td>' . '<td>' . '<input type="number" name="Speed" max="500" min="1" step="1" value="10">' . '</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Video Size<sup>*Camera</sup>' . '</td>' . '<td>' . '<select name="Size"> <option value="' . $mon_event[$c]['Size'] . '">' . $mon_event[$c]['Size'] . '*</option><option value="1920:1080">1920x1080</option> <option value="1280:720">1280x720</option><option value="640:480">640x480</option><option value="320:240">320x240</option></select>' . '</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Filename' . '</td>' . '<td>' . '<input type = text value="' . $mon_event[$c]['Name'] . '_movie" name="Filename">' . '</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Extension' . '</td>' . '<td>' . '<select name="Ext"><option value="mp4">mp4</option><option value="mkv">mkv</option>' . '</td>' . '</tr>';
@@ -161,6 +161,7 @@ function refresh_table()
                         document.getElementById("progressDiv").innerHTML=xmlhttp.responseText;
                 }
         }
+        
         xmlhttp.open("GET","'.basename($_SERVER['PHP_SELF']).'?q=refresh_table",true);
         xmlhttp.send();
 }
@@ -186,7 +187,10 @@ for ($x=0; $x<count($movie_files) ;$x++) {
 	// Get pid of encoder process from log and verify if there is a file creation in progress
 	$movie_pid=preg_grep("(PID)", file($movie_log[$x]));
 	$pid[$x]=explode(' ', array_values($movie_pid)[0])[2];
-	if(!empty(posix_getsid($pid[$x]))) { 
+	$pid[$x] = rtrim($pid[$x]);
+	if($pid[$x] == "None") {
+		$enc_status[$x]="Error"; }
+	else if(!empty(posix_getsid($pid[$x]))) { 
 		$enc_status[$x]="Encoding"; }
 	else {
 		$enc_status[$x]="Completed";
@@ -194,7 +198,10 @@ for ($x=0; $x<count($movie_files) ;$x++) {
 	echo '<tr>';
 	// Display movie files
 	echo '<td><input type="radio" name="movie_index" value="'.$x.'"></td>';
-	echo '<td><a href="'.$movie_files[$x].'">'.$movie_files[$x].'</a></td>';
+	if($enc_status[$x]=="Error") {	
+		echo '<td>'.$movie_files[$x].'</td>'; }
+	else {
+		echo '<td><a href="'.$movie_files[$x].'">'.$movie_files[$x].'</a></td>'; }
 	echo '<td>'.$enc_status[$x].'</td>';
 	// Display text files
 	echo '<td><a href="'.$movie_txt[$x].'">List</a></td>';
@@ -458,10 +465,12 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 //
 	if(filesize(PATH_TARGET."/".$Filename_base.".txt") > 0) {
 		$pid=exec("($encoder_param) > /dev/null & echo $!");
-		fwrite($zm_movie_log,"PID = ".$pid.PHP_EOL); }
+		fwrite($zm_movie_log,"PID = ".$pid.PHP_EOL); 
+	}
 	else {
-		echo "No events found";
-		fwrite($zm_movie_log,"No events found".PHP_EOL);
+		fwrite($zm_movie_log,"PID = None".PHP_EOL); 
+		fwrite($zm_movie_log,"*** No events found ***".PHP_EOL);
+		file_put_contents($video_file, 'see log');
 	}
 	fwrite($zm_movie_log,"---------------------------------------".PHP_EOL);
 	fclose($zm_movie_log);
@@ -474,7 +483,8 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 }
 if($_REQUEST['q'] == "refresh_table") {
         load_movies(); }
+
 else {
         main(); 
-	      load_movies();}
+	load_movies();}
 ?>
