@@ -161,7 +161,7 @@ function refresh_table()
                         document.getElementById("progressDiv").innerHTML=xmlhttp.responseText;
                 }
         }
-        xmlhttp.open("GET","zm_movie_cam_avconv_01.php?q=refresh_table",true);
+        xmlhttp.open("GET","'.basename($_SERVER['PHP_SELF']).'?q=refresh_table",true);
         xmlhttp.send();
 }
 
