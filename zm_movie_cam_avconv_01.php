@@ -21,6 +21,7 @@
 //
 // Zoneminder Constants
 //
+// Read from etc/zm/zm.conf (ubuntu) or etc/zm.conf (centos)
 function main()
 {
 // Read from etc/zm/zm.conf (ubuntu) or etc/zm.conf (centos)
@@ -91,8 +92,9 @@ echo '<tr>' . '<td>' . 'Codec' . '</td>' . '<td>' . '<select name="Codec"><optio
 echo '<tr>' . '<td>' . 'CRF' . '</td>' . '<td>' . '<input type="number" name="CRF" max="51" min="0" value="23">'.'</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Profile' . '</td>' . '<td>' . '<select name="Profile"><option value="Baseline">Baseline</option><option value="Main" SELECTED>Main</option><option value="High">High</option></select>' . '</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Preset' . '</td>' . '<td>' . '<select name="Preset"><option value="Veryslow">Veryslow</option><option value="Slow">Slow</option><option value="Medium">Medium</option><option value="Fast" SELECTED>Fast</option><option value="Faster">Faster</option><option value="Veryfast">Veryfast</option><option value="Superfast">Superfast</option><option value="Ultrafast">Ultrafast</option></select>' . '</td>' . '</tr>';
-echo '<tr>' . '<td>' . 'Speed' . '</td>' . '<td>' . '<input type="number" name="Speed" max="500" min="1" step="1" value="10">' . '</td>' . '</tr>';
-echo '<tr>' . '<td>' . 'Video Size<sup>*Camera</sup>' . '</td>' . '<td>' . '<select name="Size"> <option value="' . $mon_event[$c]['Size'] . '">' . $mon_event[$c]['Size'] . '*</option><option value="1920:1080">1920x1080</option> <option value="1280:720">1280x720</option><option value="640:480">640x480</option><option value="320:240">320x240</option></select>' . '</td>' . '</tr>';
+echo '<tr>' . '<td>' . 'Speed' . '</td>' . '<td>' . '<input type="number" name="Speed" max="50" min="1" step="1" value="10">' . '</td>' . '</tr>';
+echo '<tr>' . '<td>' . 'MultiplierX<br><sup>SkipFrames</sup>' . '</td>' . '<td>' . '<input type="number" name="MultiplierX" max="100" min="1" step="1" value="1">' . '</td>' . '</tr>';
+echo '<tr>' . '<td>' . 'Video Size<br><sup>*Camera</sup>' . '</td>' . '<td>' . '<select name="Size"> <option value="' . $mon_event[$c]['Size'] . '">' . $mon_event[$c]['Size'] . '*</option><option value="1920:1080">1920x1080</option><option value="1280:720">1280x720</option><option value="800:600">800x600</option><option value="640:480">640x480</option><option value="320:240">320x240</option></select>' . '</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Filename' . '</td>' . '<td>' . '<input type = text value="' . $mon_event[$c]['Name'] . '_movie" name="Filename">' . '</td>' . '</tr>';
 echo '<tr>' . '<td>' . 'Extension' . '</td>' . '<td>' . '<select name="Ext"><option value="mp4">mp4</option><option value="mkv">mkv</option>' . '</td>' . '</tr>';
 echo '</table><br>';
@@ -110,6 +112,7 @@ if (isset($_GET['form']) && $_GET['form'] == 2) {
 	$MonitorId = $_GET['Id'];
 	$Frametype = $_GET['Frames'];
 	$Speed = $_GET['Speed'];
+	$MultiplierX = $_GET['MultiplierX'];
 	$Buffer = $_GET['Buffer'];
 	$Encoder = $_GET['Encoder'];
 	$Profile = $_GET['Profile'];
@@ -123,7 +126,7 @@ if (isset($_GET['form']) && $_GET['form'] == 2) {
 	$index=$_GET['index'];
 	if(strtotime($Starttime) >= strtotime($mon_event[$index]['Starttime']) && strtotime($Endtime) <= strtotime($mon_event[$index]['Endtime']) && strtotime($Endtime) >  strtotime($Starttime))
 	{
-		Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF);
+		Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$MultiplierX,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF);
 	}
 	else
 	{
@@ -165,7 +168,6 @@ function refresh_table()
         xmlhttp.open("GET","'.basename($_SERVER['PHP_SELF']).'?q=refresh_table",true);
         xmlhttp.send();
 }
-
 </script>';
 //
 // Show existing movies for download
@@ -178,7 +180,7 @@ foreach(glob('*.{mkv,mp4}', GLOB_BRACE) as $value) {
 }
 //
 // Make HTML table
-echo '<form name="files"  method="GET">';
+echo '<form name="files" method="GET">';
 echo '<div id="progressDiv">';
 echo '<table>';
 echo '<tr><td></td><td>Movie Name</td><td>Status</td><td>Index</td><td>-%-</td><td>Size<sup>Est<sup></td><td>Log</td></tr>';
@@ -198,7 +200,7 @@ for ($x=0; $x<count($movie_files) ;$x++) {
 	echo '<tr>';
 	// Display movie files
 	echo '<td><input type="radio" name="movie_index" value="'.$x.'"></td>';
-	if($enc_status[$x]=="Error") {	
+	if($enc_status[$x]!="Completed") {	
 		echo '<td>'.$movie_files[$x].'</td>'; }
 	else {
 		echo '<td><a href="'.$movie_files[$x].'">'.$movie_files[$x].'</a></td>'; }
@@ -209,15 +211,13 @@ for ($x=0; $x<count($movie_files) ;$x++) {
 	echo '<td>'.round($progress[$x]).'</td>';
 	$size=number_format(filesize($movie_files[$x])/1048576/$progress[$x]*100,1);	
 	if($size<=15 || $progress[$x] > 90) {  
-		echo '<td>'.round(number_format(filesize($movie_files[$x])/1048576/$progress[$x]*100,1), 1).' MB</td>'; }
+		echo '<td>'.round(number_format(filesize($movie_files[$x])/1048576/$progress[$x]*100,1)).' MB</td>'; }
 	else {
 		echo '<td>'.round(number_format(filesize($movie_files[$x])/1048576/$progress[$x]*100,1),-1).' MB</td>'; }
 	// Display Log files
 	echo '<td><a href="'.$movie_log[$x].'">Log</a></td>';
 	echo '</tr>';
 }
-
-
 echo '</table>';
 echo '<input type="submit" name="Kill/Del" value="Kill/Del">';
 echo '</div>';
@@ -240,12 +240,12 @@ if(isset($_GET['Kill/Del'])) {
 		unlink($movie_log[$y]);
 		unlink($movie_progress[$y]);
 	}
-	unset($_GET);
-	unset($_REQUEST);
-	$page = $_SERVER['PHP_SELF'];
-	echo '<script type="text/javascript">';
-	refresh_table();
-	echo '</script>';	
+	// Clear $_GET
+	if(isset($_GET['Kill/Del'])) {
+		unset($_GET);
+		$page=$_SERVER['PHP_SELF'];
+		echo '<script>location.href="'.$page.'";</script>';}
+		refresh_table();
 }
 
 } # end of function load_movies
@@ -294,7 +294,7 @@ function Load_Camera()
 //
 // Function Make_Movie()
 //
-function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF)
+function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$MultiplierX,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF)
 {
 // Parse filename extension
 $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION)); 
@@ -313,7 +313,7 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 // Get DIR_EVENTS from database
 // open database
 	echo "Starting Movie";
-	fwrite($zm_movie_log,"Starting Movie: $Filename Id:$MonitorId".PHP_EOL."Start:$Starttime".PHP_EOL."End:$Endtime".PHP_EOL."Buffer:$Buffer".PHP_EOL."Speed: $Speed".PHP_EOL."Frames:$Frametype".PHP_EOL."Codec:$Codec".PHP_EOL."Size:$Size".PHP_EOL."Profile: $Profile".PHP_EOL."Preset: $Preset".PHP_EOL."CRF: $CRF".PHP_EOL);
+	fwrite($zm_movie_log,"Starting Movie: $Filename Id:$MonitorId".PHP_EOL."Start:$Starttime".PHP_EOL."End:$Endtime".PHP_EOL."Buffer:$Buffer".PHP_EOL."Speed: $Speed".PHP_EOL."MultiplierX: $MultiplierX".PHP_EOL."Frames:$Frametype".PHP_EOL."Codec:$Codec".PHP_EOL."Size:$Size".PHP_EOL."Profile: $Profile".PHP_EOL."Preset: $Preset".PHP_EOL."CRF: $CRF".PHP_EOL);
 	$con=mysqli_connect(ZM_HOST,ZMUSER,ZMPASS,ZM_DB);
 	if (mysqli_connect_errno()) {
 	        echo "Failed to connect to MySQL: " . mysqli_connect_error();
@@ -390,7 +390,7 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 	// If 'All' argument is used for generating the movie simply substitute initial time arguments for one big event (all frames between times)
 	// Add a buffer to account for any bulk frames before/after requested time
 	else if ($Frametype == 'All') {
-		$Buffer=$Bulk_frame_interval/$fps;
+		$Buffer=$Bulk_frame_interval/$fps+ $MultiplierX/$fps;
 		$NewEndtime = strtotime($Endtime)+$Buffer;
 		$NewStartTime = strtotime($Starttime)-$Buffer;
 		$Alarm_list[1]['EndTime'] = date('Y-m-d H:i:s', $NewEndtime);
@@ -443,15 +443,24 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 	        }
 	}
 	fclose($list1);
-	// Make movie. Option to use mencoder of ffmpeg (avconv)
+	// Make movie (avconv/ffmpeg)
 	// Get Camera Name
 	$result = mysqli_query($con, "SELECT Name FROM Monitors WHERE Id=$MonitorId");
 	while($row = mysqli_fetch_assoc($result)) {
 	        $Mon_Name=end($row);
 	        }
 	mysqli_close($con);
+	// Skip frames for timelapse, keep 1 frame per seconds
+	if($MultiplierX > 1) {
+		$skip_frames=$MultiplierX;
+		$arguments = "awk 'NR%$skip_frames==0{print \$0}' ".PATH_TARGET."/$Filename_base.txt > ".PATH_TARGET."/$Filename_base.txt.tl";
+		exec($arguments);
+		copy(PATH_TARGET."/$Filename_base.txt.tl", PATH_TARGET."/$Filename_base.txt");
+		unlink(PATH_TARGET."/$Filename_base.txt.tl");
+	}
 	// Calculate requested speed of movie
 	$fps =$fps*$Speed;
+
 	// set parameters
 	$date1=explode(" ",$Video_start);
 	$video_file=$Filename;
@@ -481,10 +490,12 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 		header('Location: ' . $_SERVER['PHP_SELF']);
 	}
 }
-if($_REQUEST['q'] == "refresh_table") {
-        load_movies(); }
 
+if($_REQUEST['q'] == "refresh_table") {
+        load_movies(); 
+}
 else {
-        main(); 
-	load_movies();}
+	main();
+	load_movies();
+}
 ?>
