@@ -183,16 +183,22 @@ foreach(glob('*.{mkv,mp4}', GLOB_BRACE) as $value) {
 echo '<form name="files" method="GET">';
 echo '<div id="progressDiv">';
 echo '<table>';
-echo '<tr><td></td><td>Movie Name</td><td>Status</td><td>Index</td><td>-%-</td><td>Size<sup>Est<sup></td><td>Log</td></tr>';
+echo '<tr><td></td><td>Movie Name</td><td>Status</td><td>Index</td><td>-%-</td><td>Size<sup>Est<sup></td><td>Time</td><td>Log</td></tr>';
 // Iterate through all movie files found and create table
 for ($x=0; $x<count($movie_files) ;$x++) {
 	// Get pid of encoder process from log and verify if there is a file creation in progress
 	$movie_pid=preg_grep("(PID)", file($movie_log[$x]));
-	$pid[$x]=explode(' ', array_values($movie_pid)[0])[2];
-	$pid[$x] = rtrim($pid[$x]);
+	$pid[$x]=array_pop($movie_pid);
+	$pid[$x]= explode(' ', $pid[$x]);
+	$pid[$x] = array_pop($pid);
+	$movie_duration = preg_grep("(Movie_duration)", file($movie_log[$x]));
+	$movie_duration = explode(' ', $movie_duration);
+	$movie_duration = array_pop($movie_duration);
+	$progress[$x] = file($movie_progress[$x]);
+	$progress[$x]=intval($progress[$x][0])/(intval(exec("wc -l $movie_txt[$x]")))*100;
 	if($pid[$x] == "None") {
 		$enc_status[$x]="Error"; }
-	else if(!empty(posix_getsid($pid[$x]))) { 
+	else if(!empty(posix_getsid($pid[$x])) || $progress[$x] < 100  ) { 
 		$enc_status[$x]="Encoding"; }
 	else {
 		$enc_status[$x]="Completed";
@@ -214,6 +220,10 @@ for ($x=0; $x<count($movie_files) ;$x++) {
 		echo '<td>'.round(number_format(filesize($movie_files[$x])/1048576/$progress[$x]*100,1)).' MB</td>'; }
 	else {
 		echo '<td>'.round(number_format(filesize($movie_files[$x])/1048576/$progress[$x]*100,1),-1).' MB</td>'; }
+	if($movie_duration <= 1) {  
+		echo '<td> < 1 min </td>';} 
+	else {
+		echo '<td>'.$movie_duration.' min</td>'; }
 	// Display Log files
 	echo '<td><a href="'.$movie_log[$x].'">Log</a></td>';
 	echo '</tr>';
@@ -296,6 +306,9 @@ function Load_Camera()
 //
 function Make_Movie($MonitorId,$Starttime,$Endtime,$Buffer,$Speed,$MultiplierX,$Frametype,$Codec,$Size,$Filename,$Profile,$Preset,$CRF)
 {
+if(file_exists($Filename)) {
+	$Filename=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION)).'_1.'.pathinfo($Filename,PATHINFO_EXTENSION); 
+}
 // Parse filename extension
 $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION)); 
 // open log file
@@ -450,6 +463,7 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 	        $Mon_Name=end($row);
 	        }
 	mysqli_close($con);
+	// Calculate requested speed of movie for encoder
 	// Skip frames for timelapse, keep 1 frame per seconds
 	if($MultiplierX > 1) {
 		$skip_frames=$MultiplierX;
@@ -458,10 +472,16 @@ $Filename_base=basename($Filename, ".".pathinfo($Filename,PATHINFO_EXTENSION));
 		copy(PATH_TARGET."/$Filename_base.txt.tl", PATH_TARGET."/$Filename_base.txt");
 		unlink(PATH_TARGET."/$Filename_base.txt.tl");
 	}
-	// Calculate requested speed of movie
+	// Calculate requested speed of movie for encoder
 	$fps =$fps*$Speed;
-
-	// set parameters
+	// log speed of movie to display estimated duration
+	// Log text file length, actual and calculated duration
+	$length=intval(exec("wc -l $Filename_base.txt"));
+	$movie_duration=round($length/$fps/60,1);
+	$movie_actual=round($length/$fps/60 * $MultiplierX * $Speed,0);
+	fwrite($zm_movie_log,"Movie_duration(min) = $movie_duration".PHP_EOL);
+	fwrite($zm_movie_log,"Actual_duration(min) = $movie_actual".PHP_EOL);
+	// set encoder parameters
 	$date1=explode(" ",$Video_start);
 	$video_file=$Filename;
 	$Extension=pathinfo($Filename);
