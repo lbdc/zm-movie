@@ -192,6 +192,7 @@ for ($x=0; $x<count($movie_files) ;$x++) {
 	$pid[$x]= explode(' ', $pid[$x]);
 	$pid[$x] = array_pop($pid);
 	$movie_duration = preg_grep("(Movie_duration)", file($movie_log[$x]));
+	$movie_duration = array_pop($movie_duration);
 	$movie_duration = explode(' ', $movie_duration);
 	$movie_duration = array_pop($movie_duration);
 	$progress[$x] = file($movie_progress[$x]);
